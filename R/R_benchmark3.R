@@ -146,15 +146,15 @@ param <- list(
     eta = 0.005,
     nthread = 7,
     objective = "reg:linear",
-    eval_metric=r2squared_xgb_feval,
-    # eval_metric='rmse',
+    # eval_metric=r2squared_xgb_feval,
+    eval_metric='rmse',
     booster = "gbtree",
     gamma = 0.1,
     min_child_weight = 10,
     subsample = 0.92,
     colsample_bytree = 0.9,
     lambda = 0.001,
-    # base_score = mean(train.full$y),
+    base_score = mean(train.full$y),
     alpha = 100
 )
 
@@ -167,10 +167,10 @@ for(i in 1:5){
     print(i)
     trainBC = train.full
     dtrain <- xgb.DMatrix(data.matrix(trainBC[, predictors]), label = trainBC[, response])
-    xgbFit = xgb.cv(data = dtrain, nrounds = 5000, nfold = 4, param, print_every_n = 100, early_stopping_rounds = 20, verbose = 1, maximize =T)
-    best_scr = paste0(round(tail(xgbFit$evaluation_log$test_r2_mean, 1),5), "_", round(tail(xgbFit$evaluation_log$test_r2_std, 1),5))
-    # best_scr = paste0(round(tail(xgbFit$evaluation_log$test_rmse_mean, 1),5), "_", round(tail(xgbFit$evaluation_log$test_rmse_std, 1),5))
-    xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration,print.every.n = 100, verbose = 1, maximize =T)
+    xgbFit = xgb.cv(data = dtrain, nrounds = 5000, nfold = 4, param, print_every_n = 100, early_stopping_rounds = 20, verbose = 1, maximize =F)
+    # best_scr = paste0(round(tail(xgbFit$evaluation_log$test_r2_mean, 1),5), "_", round(tail(xgbFit$evaluation_log$test_r2_std, 1),5))
+    best_scr = paste0(round(tail(xgbFit$evaluation_log$test_rmse_mean, 1),5), "_", round(tail(xgbFit$evaluation_log$test_rmse_std, 1),5))
+    xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration,print.every.n = 100, verbose = 1, maximize =F)
 
     pred = predict(xgbFit, dtest, xgbFit$bestInd)
     submit = data.frame(ID = test.full$ID, y = pred)

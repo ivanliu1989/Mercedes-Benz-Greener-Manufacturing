@@ -264,7 +264,7 @@ setDF(all)
 
 # Modeling ----------------------------------------------------------------
 test.full = all[is.na(all$y), ]
-train.full = all[!is.na(all$y), ]
+train.full = all[!is.na(all$y) & all$y < 200, ]
 predictors =colnames(train.full)[!colnames(train.full) %in% c('y')]
 response = 'y'
 
@@ -283,7 +283,7 @@ r2squared_xgb_feval <- function(pred, dtrain) {
 }
 param <- list(
     max_depth = 2, #6
-    eta = 0.003,
+    eta = 0.001,
     nthread = 7,
     objective = "reg:linear",
     eval_metric=r2squared_xgb_feval,
@@ -302,9 +302,10 @@ param <- list(
 library(xgboost)
 
 predictors.tmp = predictors
+predictors.tmp = predictors[!grepl('mean', predictors) & !grepl('med', predictors) & !grepl('max', predictors) & !grepl('min', predictors) & !grepl('sd', predictors)]
 trainBC = train.full
-dtrain <- xgb.DMatrix(data.matrix(trainBC[, predictors]), label = trainBC[, response])
-xgbFit = xgb.cv(data = dtrain, nrounds = 5000, nfold = 5, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T)
+dtrain <- xgb.DMatrix(data.matrix(trainBC[, predictors.tmp]), label = trainBC[, response])
+xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 5, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T)
 xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration,print.every.n = 100, verbose = 1, maximize =T)
 var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
 xgb.plot.importance(var.imp, top_n = 20)
@@ -312,31 +313,38 @@ xgb.plot.importance(var.imp, top_n = 20)
 dtest <- xgb.DMatrix(data.matrix(test.full[, predictors]), label = test.full[, response])
 pred = predict(xgbFit, dtest, xgbFit$bestInd)
 
+# train-r2:0.632479+0.006256	test-r2:0.594536+0.027570  (target mean)
+# train-r2:0.632020+0.009200	test-r2:0.596885+0.034432  (no target mean)
 
 
-# PC25.1
 # Submissions -------------------------------------------------------------
-for(i in 425:435){
+# dtest <- xgb.DMatrix(data.matrix(test.full[, predictors]), label = test.full[, response])
+for(i in 88:98){
     set.seed(i)
     print(i)
     trainBC = train.full
-    dtrain <- xgb.DMatrix(data.matrix(trainBC[, predictors]), label = trainBC[, response])
-    xgbFit = xgb.cv(data = dtrain, nrounds = 5000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 20, verbose = 1, maximize =T)
-    xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration, print_every_n = 100, verbose = 1, maximize =T)
-    var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
     
-    # second round
-    dtrain <- xgb.DMatrix(data.matrix(trainBC[, var.imp$Feature]), label = trainBC[, response])
-    dtest <- xgb.DMatrix(data.matrix(test.full[, var.imp$Feature]), label = test.full[, response])
+    predictors.tmp = predictors
+    # predictors.tmp = predictors[!grepl('mean', predictors) & !grepl('med', predictors) & !grepl('max', predictors) & !grepl('min', predictors) & !grepl('sd', predictors)]
     
-    xgbFit = xgb.cv(data = dtrain, nrounds = 5000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 20, verbose = 1, maximize =T)
+    dtrain <- xgb.DMatrix(data.matrix(trainBC[, predictors.tmp]), label = trainBC[, response])
+    dtest <- xgb.DMatrix(data.matrix(test.full[, predictors.tmp]), label = test.full[, response])
+    xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 5, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T)
     best_scr = paste0(round(tail(xgbFit$evaluation_log$test_r2_mean, 1),5), "_", round(tail(xgbFit$evaluation_log$test_r2_std, 1),5))
-    xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration,print.every.n = 100, verbose = 1, maximize =F)
+    xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration, print_every_n = 100, verbose = 1, maximize =T)
+    # var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
+    # 
+    # # second round
+    # dtrain <- xgb.DMatrix(data.matrix(trainBC[, var.imp$Feature]), label = trainBC[, response])
+    # dtest <- xgb.DMatrix(data.matrix(test.full[, var.imp$Feature]), label = test.full[, response])
+    # 
+    # xgbFit = xgb.cv(data = dtrain, nrounds = 5000, nfold = 5, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T)
+    # xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration,print.every.n = 100, verbose = 1, maximize =F)
     
     # prediction
     pred = predict(xgbFit, dtest, xgbFit$bestInd)
     submit = data.frame(ID = test.full$ID, y = pred)
-    write.csv(submit, file = paste0("./prediction/xgb_newfeat_",best_scr,"_",i,".csv"), row.names = F)
+    write.csv(submit, file = paste0("./prediction/xgb_nooutlier_",best_scr,"_",i,".csv"), row.names = F)
 }
 
 files = list.files("./prediction/", full.names = TRUE)

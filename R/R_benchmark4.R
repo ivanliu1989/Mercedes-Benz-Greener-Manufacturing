@@ -264,7 +264,7 @@ setDF(all)
 
 # Modeling ----------------------------------------------------------------
 test.full = all[is.na(all$y), ]
-train.full = all[!is.na(all$y) & all$y < 200, ]
+train.full = all[!is.na(all$y), ] #  & all$y < 200
 predictors =colnames(train.full)[!colnames(train.full) %in% c('y')]
 response = 'y'
 
@@ -344,7 +344,7 @@ for(i in 88:98){
     # prediction
     pred = predict(xgbFit, dtest, xgbFit$bestInd)
     submit = data.frame(ID = test.full$ID, y = pred)
-    write.csv(submit, file = paste0("./prediction/xgb_nooutlier_",best_scr,"_",i,".csv"), row.names = F)
+    write.csv(submit, file = paste0("./prediction/xgb_",best_scr,"_",i,".csv"), row.names = F)
 }
 
 files = list.files("./prediction/", full.names = TRUE)
@@ -359,7 +359,7 @@ for(i in 1:length(files)){
 fnl.submit$y = fnl.submit$y/length(files)
 fnl.submit[, V1 := NULL]
 
-write.csv(fnl.submit, file = "./submissions/20170615_outlier.csv", row.names = F)
+write.csv(fnl.submit, file = "./submissions/20170616_new_feat.csv", row.names = F)
 
 
 

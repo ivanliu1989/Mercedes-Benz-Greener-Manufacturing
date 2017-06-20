@@ -283,7 +283,7 @@ r2squared_xgb_feval <- function(pred, dtrain) {
 }
 param <- list(
     max_depth = 2, #6
-    eta = 0.001,
+    eta = 0.005,
     nthread = 7,
     objective = "reg:linear",
     eval_metric=r2squared_xgb_feval,
@@ -305,7 +305,7 @@ predictors.tmp = predictors
 predictors.tmp = predictors[!grepl('mean', predictors) & !grepl('med', predictors) & !grepl('max', predictors) & !grepl('min', predictors) & !grepl('sd', predictors)]
 trainBC = train.full
 dtrain <- xgb.DMatrix(data.matrix(trainBC[, predictors.tmp]), label = trainBC[, response])
-xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 5, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T)
+xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T)
 xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration,print.every.n = 100, verbose = 1, maximize =T)
 var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
 xgb.plot.importance(var.imp, top_n = 20)

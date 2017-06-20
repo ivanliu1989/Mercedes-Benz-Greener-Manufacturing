@@ -1,5 +1,20 @@
 # Outlier
-
+# library(RandPro)
+# # GRP
+# set.seed(912)
+# R = form_gauss_matrix(n_rows = ncol(mdat),n_cols = 20,JLT=F,eps=0.5)
+# mdat_grp_20 = data.frame(as.matrix(mdat) %*% R)
+# names(m_grp_20) = paste0("GRP",1:20)
+# 
+# mdat = cbind(mdat,mdat_grp_20)
+# 
+# # SRP
+# set.seed(912)
+# R = form_sparse_matrix(n_rows = ncol(mdat),n_cols = 20,JLT=F,eps=0.5)
+# mdat_srp_20 = data.frame(as.matrix(mdat) %*% R)
+# names(mdat_srp_20) = paste0("SRP",1:20)
+# 
+# mdat = cbind(mdat,mdat_srp_20)
 
 
 rm(list = ls()); gc()

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
-import xgboost as xgb
+#import xgboost as xgb
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.decomposition import PCA, FastICA, TruncatedSVD
 from sklearn.random_projection import SparseRandomProjection, GaussianRandomProjection
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 def feat_standardize(x):
-    x = x.apply(lambda x: x/(x.max()-x.min()))
+    x = x.apply(lambda x: (x-x.min())/(x.max()-x.min()))
     return x
     
 # Read data in
@@ -55,7 +55,7 @@ for i in all_dt.columns:
 interact_feat = feat_standardize(interact_feat)            
 
 # 2. PCA, ICA & SVD
-n_comp = 16
+n_comp = 12
 random_seed = 624
 # 2.1 PCA
 pca = PCA(n_components=n_comp, random_state=random_seed)
@@ -128,6 +128,71 @@ toRM_Col = [c for c in train.columns if len(set(train[c]))==1]
 all_dt = all_dt.drop(toRM_Col, axis = 1)
 
 # 7. Target Mean
+# 7.1 Tgt mean
+y_Mean = all_dt['y'].mean()
+X0_Mean = all_dt.groupby(['X0'], as_index = False)['y'].mean(); X0_Mean['y'] = X0_Mean['y'].replace([-1],[y_Mean])
+X1_Mean = all_dt.groupby(['X1'], as_index = False)['y'].mean(); X1_Mean['y'] = X1_Mean['y'].replace([-1],[y_Mean])
+X2_Mean = all_dt.groupby(['X2'], as_index = False)['y'].mean(); X2_Mean['y'] = X2_Mean['y'].replace([-1],[y_Mean])
+X3_Mean = all_dt.groupby(['X3'], as_index = False)['y'].mean(); X3_Mean['y'] = X3_Mean['y'].replace([-1],[y_Mean])
+X4_Mean = all_dt.groupby(['X4'], as_index = False)['y'].mean(); X4_Mean['y'] = X4_Mean['y'].replace([-1],[y_Mean])
+X5_Mean = all_dt.groupby(['X5'], as_index = False)['y'].mean(); X5_Mean['y'] = X5_Mean['y'].replace([-1],[y_Mean])
+X6_Mean = all_dt.groupby(['X6'], as_index = False)['y'].mean(); X6_Mean['y'] = X6_Mean['y'].replace([-1],[y_Mean])
+X8_Mean = all_dt.groupby(['X8'], as_index = False)['y'].mean(); X8_Mean['y'] = X8_Mean['y'].replace([-1],[y_Mean])
+# 7.2 Tgt sd
+y_Std = all_dt['y'].std()
+X0_Sd = all_dt.groupby(['X0'], as_index = False)['y'].std(); X0_Sd['y'] = X0_Sd['y'].replace([float('nan')],[y_Std])
+X1_Sd = all_dt.groupby(['X1'], as_index = False)['y'].std(); X1_Sd['y'] = X1_Sd['y'].replace([float('nan')],[y_Std])
+X2_Sd = all_dt.groupby(['X2'], as_index = False)['y'].std(); X2_Sd['y'] = X2_Sd['y'].replace([float('nan')],[y_Std])
+X3_Sd = all_dt.groupby(['X3'], as_index = False)['y'].std(); X3_Sd['y'] = X3_Sd['y'].replace([float('nan')],[y_Std])
+X4_Sd = all_dt.groupby(['X4'], as_index = False)['y'].std(); X4_Sd['y'] = X4_Sd['y'].replace([float('nan')],[y_Std])
+X5_Sd = all_dt.groupby(['X5'], as_index = False)['y'].std(); X5_Sd['y'] = X5_Sd['y'].replace([float('nan')],[y_Std])
+X6_Sd = all_dt.groupby(['X6'], as_index = False)['y'].std(); X6_Sd['y'] = X6_Sd['y'].replace([float('nan')],[y_Std])
+X8_Sd = all_dt.groupby(['X8'], as_index = False)['y'].std(); X8_Sd['y'] = X8_Sd['y'].replace([float('nan')],[y_Std])
+# 7.3 Tgt kurtosis
+y_Kurt = pd.DataFrame.kurt(all_dt['y'])
+X0_Kurt = all_dt.groupby(['X0'], as_index = False)['y'].apply(pd.DataFrame.kurt); X0_Kurt = X0_Kurt.replace([float('nan')],[y_Kurt])
+X1_Kurt = all_dt.groupby(['X1'], as_index = False)['y'].apply(pd.DataFrame.kurt); X1_Kurt = X1_Kurt.replace([float('nan')],[y_Kurt])
+X2_Kurt = all_dt.groupby(['X2'], as_index = False)['y'].apply(pd.DataFrame.kurt); X2_Kurt = X2_Kurt.replace([float('nan')],[y_Kurt])
+X3_Kurt = all_dt.groupby(['X3'], as_index = False)['y'].apply(pd.DataFrame.kurt); X3_Kurt = X3_Kurt.replace([float('nan')],[y_Kurt])
+X4_Kurt = all_dt.groupby(['X4'], as_index = False)['y'].apply(pd.DataFrame.kurt); X4_Kurt = X4_Kurt.replace([float('nan')],[y_Kurt])
+X5_Kurt = all_dt.groupby(['X5'], as_index = False)['y'].apply(pd.DataFrame.kurt); X5_Kurt = X5_Kurt.replace([float('nan')],[y_Kurt])
+X6_Kurt = all_dt.groupby(['X6'], as_index = False)['y'].apply(pd.DataFrame.kurt); X6_Kurt = X6_Kurt.replace([float('nan')],[y_Kurt])
+X8_Kurt = all_dt.groupby(['X8'], as_index = False)['y'].apply(pd.DataFrame.kurt); X8_Kurt = X8_Kurt.replace([float('nan')],[y_Kurt])
+# 7.4 Tgt skewness
+y_Skew = all_dt['y'].skew()
+X0_Skew = all_dt.groupby(['X0'], as_index = False)['y'].skew(); X0_Skew = X0_Skew.replace([float('nan')],[y_Skew])
+X1_Skew = all_dt.groupby(['X1'], as_index = False)['y'].skew(); X1_Skew = X1_Skew.replace([float('nan')],[y_Skew])
+X2_Skew = all_dt.groupby(['X2'], as_index = False)['y'].skew(); X2_Skew = X2_Skew.replace([float('nan')],[y_Skew])
+X3_Skew = all_dt.groupby(['X3'], as_index = False)['y'].skew(); X3_Skew = X3_Skew.replace([float('nan')],[y_Skew])
+X4_Skew = all_dt.groupby(['X4'], as_index = False)['y'].skew(); X4_Skew = X4_Skew.replace([float('nan')],[y_Skew])
+X5_Skew = all_dt.groupby(['X5'], as_index = False)['y'].skew(); X5_Skew = X5_Skew.replace([float('nan')],[y_Skew])
+X6_Skew = all_dt.groupby(['X6'], as_index = False)['y'].skew(); X6_Skew = X6_Skew.replace([float('nan')],[y_Skew])
+X8_Skew = all_dt.groupby(['X8'], as_index = False)['y'].skew(); X8_Skew = X8_Skew.replace([float('nan')],[y_Skew])
+# 7.5 Merge
+tgt_feat_X0 = pd.DataFrame({'X0':X0_Mean['X0'], 'X0_Mean':X0_Mean['y'], 'X0_Sd':X0_Sd['y'], 'X0_Kurt':X0_Kurt, 'X0_Skew':X0_Skew})
+tgt_feat_X1 = pd.DataFrame({'X1':X1_Mean['X1'], 'X1_Mean':X1_Mean['y'], 'X1_Sd':X1_Sd['y'], 'X1_Kurt':X1_Kurt, 'X1_Skew':X1_Skew})
+tgt_feat_X2 = pd.DataFrame({'X2':X2_Mean['X2'], 'X2_Mean':X2_Mean['y'], 'X2_Sd':X2_Sd['y'], 'X2_Kurt':X2_Kurt, 'X2_Skew':X2_Skew})
+tgt_feat_X3 = pd.DataFrame({'X3':X3_Mean['X3'], 'X3_Mean':X3_Mean['y'], 'X3_Sd':X3_Sd['y'], 'X3_Kurt':X3_Kurt, 'X3_Skew':X3_Skew})
+tgt_feat_X4 = pd.DataFrame({'X4':X4_Mean['X4'], 'X4_Mean':X4_Mean['y'], 'X4_Sd':X4_Sd['y'], 'X4_Kurt':X4_Kurt, 'X4_Skew':X4_Skew})
+tgt_feat_X5 = pd.DataFrame({'X5':X5_Mean['X5'], 'X5_Mean':X5_Mean['y'], 'X5_Sd':X5_Sd['y'], 'X5_Kurt':X5_Kurt, 'X5_Skew':X5_Skew})
+tgt_feat_X6 = pd.DataFrame({'X6':X6_Mean['X6'], 'X6_Mean':X6_Mean['y'], 'X6_Sd':X6_Sd['y'], 'X6_Kurt':X6_Kurt, 'X6_Skew':X6_Skew})
+tgt_feat_X8 = pd.DataFrame({'X8':X8_Mean['X8'], 'X8_Mean':X8_Mean['y'], 'X8_Sd':X8_Sd['y'], 'X8_Kurt':X8_Kurt, 'X8_Skew':X8_Skew})
+tgt_feat_X0.iloc[:,1:] = feat_standardize(tgt_feat_X0.iloc[:,1:])
+tgt_feat_X1.iloc[:,1:] = feat_standardize(tgt_feat_X1.iloc[:,1:])
+tgt_feat_X2.iloc[:,1:] = feat_standardize(tgt_feat_X2.iloc[:,1:])
+tgt_feat_X3.iloc[:,1:] = feat_standardize(tgt_feat_X3.iloc[:,1:])
+tgt_feat_X4.iloc[:,1:] = feat_standardize(tgt_feat_X4.iloc[:,1:])
+tgt_feat_X5.iloc[:,1:] = feat_standardize(tgt_feat_X5.iloc[:,1:])
+tgt_feat_X6.iloc[:,1:] = feat_standardize(tgt_feat_X6.iloc[:,1:])
+tgt_feat_X8.iloc[:,1:] = feat_standardize(tgt_feat_X8.iloc[:,1:])
+all_dt = pd.merge(all_dt, tgt_feat_X0, on = ['X0'], how = 'left')
+all_dt = pd.merge(all_dt, tgt_feat_X1, on = ['X1'], how = 'left')
+all_dt = pd.merge(all_dt, tgt_feat_X2, on = ['X2'], how = 'left')
+all_dt = pd.merge(all_dt, tgt_feat_X3, on = ['X3'], how = 'left')
+all_dt = pd.merge(all_dt, tgt_feat_X4, on = ['X4'], how = 'left')
+all_dt = pd.merge(all_dt, tgt_feat_X5, on = ['X5'], how = 'left')
+all_dt = pd.merge(all_dt, tgt_feat_X6, on = ['X6'], how = 'left')
+all_dt = pd.merge(all_dt, tgt_feat_X8, on = ['X8'], how = 'left')
 
 # 8. Outliers
 

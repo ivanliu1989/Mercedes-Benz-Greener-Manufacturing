@@ -68,21 +68,16 @@ for(i in cat.feat){
     all[, i] = match(all[,i], encoding.list$from)
 }
 
-
-# ID Moving Average -------------------------------------------------------
-# moving average by ID
-
-
 # Interactions based on correlations --------------------------------------
 y = all[!is.na(all$y), 'y']
 for(i in num.feat){
     for(j in num.feat){
-        print(paste0(i, "_", j))
         corInteract = all[!is.na(all$y), i] + all[!is.na(all$y), j]
         if(length(unique(corInteract)) == 1){
             print("Summing up to 1")
         }else{
             if(abs(cor(y, corInteract)) > (abs(cor(y, all[!is.na(all$y), i])) + abs(cor(y, all[!is.na(all$y), j])))){
+                print(paste0(i, "_", j))
                 all[, paste0(i, "_", j)] = all[, i] + all[, j]
             }    
         }
@@ -90,12 +85,12 @@ for(i in num.feat){
 }
 for(i in cat.feat){
     for(j in cat.feat){
-        print(paste0(i, "_", j))
         corInteract = all[!is.na(all$y), i] + all[!is.na(all$y), j]
         if(length(unique(corInteract)) == 1){
             print("Summing up to 1")
         }else{
             if(abs(cor(y, corInteract)) > (abs(cor(y, all[!is.na(all$y), i])) + abs(cor(y, all[!is.na(all$y), j])))){
+                print(paste0(i, "_", j))
                 all[, paste0(i, "_", j)] = all[, i] + all[, j]
             }    
         }
@@ -110,15 +105,12 @@ all$Cnt = rowSums(all[, num.feat])
 # pca
 library(caret)
 preProcValues <- preProcess(all[, c(num.feat, cat.feat)], method = c("center", "scale", "pca"))
-pca.feat <- predict(preProcValues, all[, c(num.feat, cat.feat)])[, 1:100]
-preProcValues <- preProcess(all[, c(num.feat, cat.feat)], method = c("center", "scale", "pca"))
-pca.feat2 <- predict(preProcValues, all[, c(num.feat, cat.feat)])[, 1:100]
-names(pca.feat2) = paste0('PC2_', 1:ncol(pca.feat2))
+pca.feat <- predict(preProcValues, all[, c(num.feat, cat.feat)])[, 1:12]
 # ica
-preProcValues <- preProcess(all[, c(num.feat, cat.feat)], method = c("center", "scale", "ica"), n.comp = 100)
+preProcValues <- preProcess(all[, c(num.feat, cat.feat)], method = c("center", "scale", "ica"), n.comp = 12)
 ica.feat <- predict(preProcValues, all[, c(num.feat, cat.feat)])
 # svd
-svd.feat = as.data.frame(svd(all[, c(num.feat, cat.feat)],nv = )$u)[, 1:100]
+svd.feat = as.data.frame(svd(all[, c(num.feat, cat.feat)],nv = )$u)[, 1:12]
 names(svd.feat) = paste0('SVD', 1:ncol(svd.feat))
 # tsne
 library(tsne)
@@ -128,61 +120,30 @@ all$tsneY = tsne_out[, 2]
 all$tsneZ = tsne_out[, 3]
 
 
+# Clustering --------------------------------------------------------------
+cl <- kmeans(all[, grepl('tsne', colnames(all))],4)
+cl2 <- kmeans(all[, 11:366],4)
+cl3 <- kmeans(cbind(pca.feat2, pca.feat),4)
+kmean_feat = data.frame(kmean_tsne = as.character(cl$cluster),
+                        kmean_num = as.character(cl2$cluster),
+                        kmean_pca = as.character(cl3$cluster))
+dummies_kmean <- dummyVars( ~ ., data = kmean_feat)
+dummies_kmean = predict(dummies_kmean, newdata = kmean_feat)
+# par(mfcol = c(2,2))
+# hist(all[cl$cluster == 1, 'y'], 100)
+# hist(all[cl$cluster == 2, 'y'], 100)
+# hist(all[cl$cluster == 3, 'y'], 100)
+# hist(all[cl$cluster == 4, 'y'], 100)
+
+
+all = cbind(all, pca.feat, ica.feat, svd.feat, dummies_kmean, dummies)
+
+# ID Moving Average -------------------------------------------------------
+# moving average by ID
+
 
 # Target mean -------------------------------------------------------------
 # setDF(all)
-# for(i in 1:nrow(all)){
-#     print(i)
-#     # median
-#     all[i, 'medX0'] = median(all[all$X0 == all[i, 'X0'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'medX1'] = median(all[all$X1 == all[i, 'X1'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'medX2'] = median(all[all$X2 == all[i, 'X2'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'medX3'] = median(all[all$X3 == all[i, 'X3'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'medX4'] = median(all[all$X4 == all[i, 'X4'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'medX5'] = median(all[all$X5 == all[i, 'X5'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'medX6'] = median(all[all$X6 == all[i, 'X6'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'medX8'] = median(all[all$X8 == all[i, 'X8'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     
-#     # mean
-#     all[i, 'meanX0'] = mean(all[all$X0 == all[i, 'X0'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'meanX1'] = mean(all[all$X1 == all[i, 'X1'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'meanX2'] = mean(all[all$X2 == all[i, 'X2'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'meanX3'] = mean(all[all$X3 == all[i, 'X3'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'meanX4'] = mean(all[all$X4 == all[i, 'X4'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'meanX5'] = mean(all[all$X5 == all[i, 'X5'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'meanX6'] = mean(all[all$X6 == all[i, 'X6'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'meanX8'] = mean(all[all$X8 == all[i, 'X8'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     
-#     # min
-#     all[i, 'minX0'] = min(all[all$X0 == all[i, 'X0'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'minX1'] = min(all[all$X1 == all[i, 'X1'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'minX2'] = min(all[all$X2 == all[i, 'X2'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'minX3'] = min(all[all$X3 == all[i, 'X3'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'minX4'] = min(all[all$X4 == all[i, 'X4'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'minX5'] = min(all[all$X5 == all[i, 'X5'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'minX6'] = min(all[all$X6 == all[i, 'X6'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'minX8'] = min(all[all$X8 == all[i, 'X8'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     
-#     # max
-#     all[i, 'maxX0'] = max(all[all$X0 == all[i, 'X0'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'maxX1'] = max(all[all$X1 == all[i, 'X1'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'maxX2'] = max(all[all$X2 == all[i, 'X2'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'maxX3'] = max(all[all$X3 == all[i, 'X3'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'maxX4'] = max(all[all$X4 == all[i, 'X4'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'maxX5'] = max(all[all$X5 == all[i, 'X5'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'maxX6'] = max(all[all$X6 == all[i, 'X6'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'maxX8'] = max(all[all$X8 == all[i, 'X8'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     
-#     # sd
-#     all[i, 'sdX0'] = sd(all[all$X0 == all[i, 'X0'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'sdX1'] = sd(all[all$X1 == all[i, 'X1'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'sdX2'] = sd(all[all$X2 == all[i, 'X2'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'sdX3'] = sd(all[all$X3 == all[i, 'X3'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'sdX4'] = sd(all[all$X4 == all[i, 'X4'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'sdX5'] = sd(all[all$X5 == all[i, 'X5'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'sdX6'] = sd(all[all$X6 == all[i, 'X6'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-#     all[i, 'sdX8'] = sd(all[all$X8 == all[i, 'X8'] & all$ID != all[i, 'ID'], 'y'], na.rm = TRUE)
-# }
 # Median
 setDT(all)
 all[, medX0 := median(log(y), na.rm = TRUE), by = X0]
@@ -245,24 +206,11 @@ for(i in 1:ncol(all)){
 }
 
 
-# Clustering --------------------------------------------------------------
-cl <- kmeans(all[, grepl('tsne', colnames(all))],4)
-cl2 <- kmeans(all[, 11:366],4)
-cl3 <- kmeans(cbind(pca.feat2, pca.feat),4)
-kmean_feat = data.frame(kmean_tsne = as.character(cl$cluster),
-                        kmean_num = as.character(cl2$cluster),
-                        kmean_pca = as.character(cl3$cluster))
-dummies_kmean <- dummyVars( ~ ., data = kmean_feat)
-dummies_kmean = predict(dummies_kmean, newdata = kmean_feat)
-# par(mfcol = c(2,2))
-# hist(all[cl$cluster == 1, 'y'], 100)
-# hist(all[cl$cluster == 2, 'y'], 100)
-# hist(all[cl$cluster == 3, 'y'], 100)
-# hist(all[cl$cluster == 4, 'y'], 100)
+
 
 
 # Combine -----------------------------------------------------------------
-all = cbind(all, pca.feat, pca.feat2, ica.feat, svd.feat, dummies_kmean, dummies)
+all = cbind(all, pca.feat, ica.feat, svd.feat, dummies_kmean, dummies)
 save(all,toRM, file = "../data20170615.RData")
 load("../data20170615.RData")
 setDF(all)

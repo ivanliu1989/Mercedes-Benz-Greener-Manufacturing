@@ -207,23 +207,8 @@ for(i in 1:ncol(all)){
 }
 
 
-
-
-
 # Combine -----------------------------------------------------------------
-all = cbind(all, pca.feat, ica.feat, svd.feat, dummies_kmean, dummies)
-save(all,toRM, file = "../data20170615.RData")
 load("../data20170615.RData")
-setDF(all)
-
-# Removing Outlier --------------------------------------------------------
-# There is one data point at around 265 s
-# all$y = ifelse(all$y >= 130, 130, all$y)
-
-
-
-
-
 
 
 # Modeling ----------------------------------------------------------------
@@ -256,7 +241,7 @@ param <- list(
     gamma = 0.001,
     min_child_weight = 1,
     subsample = 0.92,
-    colsample_bytree = 0.6,
+    colsample_bytree = 0.9,
     lambda = 0.0001,
     base_score = mean(train.full$y),
     alpha = 10
@@ -264,89 +249,27 @@ param <- list(
 # train-r2:0.616698+0.014985	test-r2:0.576366+0.063593
 
 library(xgboost)
-
-predictors.tmp = predictors
-predictors.tmp = predictors[!grepl('mean', predictors) & !grepl('med', predictors) & !grepl('max', predictors) & !grepl('min', predictors) & !grepl('sd', predictors)]
-trainBC = train.full
-dtrain <- xgb.DMatrix(data.matrix(trainBC[, predictors.tmp]), label = trainBC[, response])
-xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T, prediction = T)
-1 - (sum((trainBC[, response]-xgbFit$pred)^2) / sum((trainBC[, response]-mean(trainBC[, response]))^2))
-
-
-xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration,print.every.n = 100, verbose = 1, maximize =T)
-var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
-xgb.plot.importance(var.imp, top_n = 20)
-
-dtest <- xgb.DMatrix(data.matrix(test.full[, predictors]), label = test.full[, response])
-pred = predict(xgbFit, dtest, xgbFit$bestInd)
-
-# train-r2:0.632479+0.006256	test-r2:0.594536+0.027570  (target mean)
-# train-r2:0.632020+0.009200	test-r2:0.596885+0.034432  (no target mean)
-
-
-# Submissions -------------------------------------------------------------
-# dtest <- xgb.DMatrix(data.matrix(test.full[, predictors]), label = test.full[, response])
-for(i in 88:98){
-    set.seed(i)
-    print(i)
-    trainBC = train.full
-    
-    predictors.tmp = predictors
+r2.df = data.frame(feature = 'ALL', R2 = r2)
+for(f in 1:length(predictors)){
+    set.seed(1989)
+    print(f)
+    predictors.tmp = predictors[-f]
     # predictors.tmp = predictors[!grepl('mean', predictors) & !grepl('med', predictors) & !grepl('max', predictors) & !grepl('min', predictors) & !grepl('sd', predictors)]
-    
+    trainBC = train.full
     dtrain <- xgb.DMatrix(data.matrix(trainBC[, predictors.tmp]), label = trainBC[, response])
-    dtest <- xgb.DMatrix(data.matrix(test.full[, predictors.tmp]), label = test.full[, response])
-    xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 5, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T)
-    best_scr = paste0(round(tail(xgbFit$evaluation_log$test_r2_mean, 1),5), "_", round(tail(xgbFit$evaluation_log$test_r2_std, 1),5))
-    xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration, print_every_n = 100, verbose = 1, maximize =T)
-    # var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
-    # 
-    # # second round
-    # dtrain <- xgb.DMatrix(data.matrix(trainBC[, var.imp$Feature]), label = trainBC[, response])
-    # dtest <- xgb.DMatrix(data.matrix(test.full[, var.imp$Feature]), label = test.full[, response])
-    # 
-    # xgbFit = xgb.cv(data = dtrain, nrounds = 5000, nfold = 5, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T)
-    # xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration,print.every.n = 100, verbose = 1, maximize =F)
-    
-    # prediction
-    pred = predict(xgbFit, dtest, xgbFit$bestInd)
-    submit = data.frame(ID = test.full$ID, y = pred)
-    write.csv(submit, file = paste0("./prediction/xgb_",best_scr,"_",i,".csv"), row.names = F)
+    xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T, prediction = T)
+    r2 = 1 - (sum((trainBC[, response]-xgbFit$pred)^2) / sum((trainBC[, response]-mean(trainBC[, response]))^2))
+    r2.df[f+1, 1] = predictors[f]
+    r2.df[f+1, 2] = r2
 }
 
-files = list.files("./prediction/", full.names = TRUE)
-for(i in 1:length(files)){
-    submit = fread(files[i])
-    if(i==1){
-        fnl.submit = submit
-    }else{
-        fnl.submit$y = fnl.submit$y + submit$y
-    }
-}
-fnl.submit$y = fnl.submit$y/length(files)
-fnl.submit[, V1 := NULL]
-
-write.csv(fnl.submit, file = "./submissions/20170616_new_feat.csv", row.names = F)
-
-
-
-# Compare Submit ----------------------------------------------------------
-submit_1 = fread('submissions/20170612_bl.csv')
-submit_2 = fread('submissions/20170613_ordered.csv')
-
-hist(submit_1$y - submit_2$y, breaks = 100)
-plot(submit_1$y, submit_2$y)
+# 0.5691248 without tgt mean
+# 0.573533 with tgt mean
 
 
 
 
-
-
-
-
-
-
-
-
-
-
+# X0 Distribution (e.g. weights)
+# Duplicates
+# Add training obs
+# Stacking

@@ -18,3 +18,10 @@
 # ID = 488, y = 113.39009
 # 
 # ID=253 indeed has y=115.93724.
+
+
+
+
+# mean when there was a duplicate, it helped really, really a lot!
+
+# I have introduced a variable counting the repetitions: for each row, I include (as a new column) a variable indicating how many 'clones' does this row have.

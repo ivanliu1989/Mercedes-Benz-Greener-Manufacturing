@@ -250,7 +250,7 @@ param <- list(
 
 library(xgboost)
 r2.df = data.frame(feature = 'ALL', R2 = r2)
-for(f in 1:length(predictors)){
+for(f in 682:length(predictors)){
     set.seed(1989)
     print(f)
     predictors.tmp = predictors[-f]
@@ -262,6 +262,7 @@ for(f in 1:length(predictors)){
     r2.df[f+1, 1] = predictors[f]
     r2.df[f+1, 2] = r2
 }
+save(r2.df, file = './data/featureSelection.RData')
 
 # 0.5691248 without tgt mean
 # 0.573533 with tgt mean

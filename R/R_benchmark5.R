@@ -166,26 +166,6 @@ all[, meanX5 := mean(log(y), na.rm = TRUE), by = X5]
 all[, meanX6 := mean(log(y), na.rm = TRUE), by = X6]
 all[, meanX8 := mean(log(y), na.rm = TRUE), by = X8]
 
-# min
-all[, minX0 := min(log(y), na.rm = TRUE), by = X0]
-all[, minX1 := min(log(y), na.rm = TRUE), by = X1]
-all[, minX2 := min(log(y), na.rm = TRUE), by = X2]
-all[, minX3 := min(log(y), na.rm = TRUE), by = X3]
-all[, minX4 := min(log(y), na.rm = TRUE), by = X4]
-all[, minX5 := min(log(y), na.rm = TRUE), by = X5]
-all[, minX6 := min(log(y), na.rm = TRUE), by = X6]
-all[, minX8 := min(log(y), na.rm = TRUE), by = X8]
-
-# max
-all[, maxX0 := max(log(y), na.rm = TRUE), by = X0]
-all[, maxX1 := max(log(y), na.rm = TRUE), by = X1]
-all[, maxX2 := max(log(y), na.rm = TRUE), by = X2]
-all[, maxX3 := max(log(y), na.rm = TRUE), by = X3]
-all[, maxX4 := max(log(y), na.rm = TRUE), by = X4]
-all[, maxX5 := max(log(y), na.rm = TRUE), by = X5]
-all[, maxX6 := max(log(y), na.rm = TRUE), by = X6]
-all[, maxX8 := max(log(y), na.rm = TRUE), by = X8]
-
 # sd
 all[, sdX0 := sd(log(y), na.rm = TRUE), by = X0]
 all[, sdX1 := sd(log(y), na.rm = TRUE), by = X1]
@@ -204,6 +184,58 @@ for(i in 1:ncol(all)){
 
 for(i in 1:ncol(all)){
     all[, i] = ifelse(is.nan(all[,i]), NA, all[,i])
+}
+for(i in 1:ncol(all)){
+    all[, i] = ifelse(is.na(all[,i]), median(log(all$y), na.rm = TRUE), all[,i])
+}
+
+
+setDT(all)
+all[, medX0 := median(log(y), na.rm = TRUE), by = X0]
+all[, medX1 := median(log(y), na.rm = TRUE), by = X1]
+all[, medX2 := median(log(y), na.rm = TRUE), by = X2]
+all[, medX3 := median(log(y), na.rm = TRUE), by = X3]
+all[, medX4 := median(log(y), na.rm = TRUE), by = X4]
+all[, medX5 := median(log(y), na.rm = TRUE), by = X5]
+all[, medX6 := median(log(y), na.rm = TRUE), by = X6]
+all[, medX8 := median(log(y), na.rm = TRUE), by = X8]
+
+# mean
+all[, meanX0 := mean(log(y), na.rm = TRUE), by = X0]
+all[, meanX1 := mean(log(y), na.rm = TRUE), by = X1]
+all[, meanX2 := mean(log(y), na.rm = TRUE), by = X2]
+all[, meanX3 := mean(log(y), na.rm = TRUE), by = X3]
+all[, meanX4 := mean(log(y), na.rm = TRUE), by = X4]
+all[, meanX5 := mean(log(y), na.rm = TRUE), by = X5]
+all[, meanX6 := mean(log(y), na.rm = TRUE), by = X6]
+all[, meanX8 := mean(log(y), na.rm = TRUE), by = X8]
+
+# sd
+all[, sdX0 := sd(log(y), na.rm = TRUE), by = X0]
+all[, sdX1 := sd(log(y), na.rm = TRUE), by = X1]
+all[, sdX2 := sd(log(y), na.rm = TRUE), by = X2]
+all[, sdX3 := sd(log(y), na.rm = TRUE), by = X3]
+all[, sdX4 := sd(log(y), na.rm = TRUE), by = X4]
+all[, sdX5 := sd(log(y), na.rm = TRUE), by = X5]
+all[, sdX6 := sd(log(y), na.rm = TRUE), by = X6]
+all[, sdX8 := sd(log(y), na.rm = TRUE), by = X8]
+setDF(all)
+
+# Fix
+for(i in 1:ncol(all)){
+    all[, i] = ifelse(is.infinite(all[,i]), NA, all[,i])
+}
+for(i in 1:ncol(all)){
+    all[, i] = ifelse(is.nan(all[,i]), NA, all[,i])
+}
+for(i in colnames(all)[grepl('medX', colnames(all))]){
+    all[, i] = ifelse(is.na(all[,i]), median(log(all$y), na.rm = TRUE), all[,i])
+}
+for(i in colnames(all)[grepl('meanX', colnames(all))]){
+    all[, i] = ifelse(is.na(all[,i]), mean(log(all$y), na.rm = TRUE), all[,i])
+}
+for(i in colnames(all)[grepl('sdX', colnames(all))]){
+    all[, i] = ifelse(is.na(all[,i]), sd(log(all$y), na.rm = TRUE), all[,i])
 }
 
 
@@ -249,28 +281,41 @@ param <- list(
 # train-r2:0.616698+0.014985	test-r2:0.576366+0.063593
 
 library(xgboost)
-r2.df = data.frame(feature = 'ALL', R2 = r2)
-for(f in 682:length(predictors)){
-    set.seed(1989)
-    print(f)
-    predictors.tmp = predictors[-f]
-    # predictors.tmp = predictors[!grepl('mean', predictors) & !grepl('med', predictors) & !grepl('max', predictors) & !grepl('min', predictors) & !grepl('sd', predictors)]
+# r2.df = data.frame(feature = 'ALL', R2 = r2)
+
+for(f in 2:10){
+    set.seed(1989+f)
+    # predictors.tmp = predictors#[-f]
+    predictors.tmp = final.feature
+    
     trainBC = train.full
     dtrain <- xgb.DMatrix(data.matrix(trainBC[, predictors.tmp]), label = trainBC[, response])
     xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T, prediction = T)
     r2 = 1 - (sum((trainBC[, response]-xgbFit$pred)^2) / sum((trainBC[, response]-mean(trainBC[, response]))^2))
-    r2.df[f+1, 1] = predictors[f]
-    r2.df[f+1, 2] = r2
+    print(r2)
+    
+    xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration, print_every_n = 100, verbose = 1, maximize =T)
+    var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
+    
+    if(f == 1){
+        var.imp.all = var.imp
+    }else{
+        var.imp.all = rbind(var.imp.all, var.imp)
+    }
 }
-save(r2.df, file = './data/featureSelection.RData')
+final.feature = unique(c(predictors[1:365], unique(var.imp.all$Feature)))
 
-# 0.5691248 without tgt mean
-# 0.573533 with tgt mean
+# save(final.feature, file = './data/featureSelection_20170706.RData')
+# save(r2.df, file = './data/featureSelection.RData')
+# load(file = './data/featureSelection.RData')
+# r2.df$Keep = ifelse(r2.df$R2 < r2.df$R2[1], 'Keep', 'Remove')
+# r2.df[1:366, 'Keep'] = 'Keep'
+# predictors.tmp = predictors[predictors %in% r2.df[r2.df$Keep == 'Keep', 'feature']]
 
 
 
 
-# X0 Distribution (e.g. weights)
-# Duplicates
-# Add training obs
-# Stacking
+
+
+
+

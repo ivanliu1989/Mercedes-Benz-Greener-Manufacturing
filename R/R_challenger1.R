@@ -3,15 +3,52 @@ library(caret)
 library(data.table)
 load(file = './data/featureSelection_20170706.RData')
 load(file = "../data20170706.RData")
+setDT(all)
+
+# X0 A
+colnames(all)[grepl('X0a', colnames(all))]
+all[, X0_A_Only := rowSums(.SD), .SDcols = colnames(all)[grepl('X0a', colnames(all))]]
+all[, X0_A_Only_MeanY := mean(y, na.rm = T), by = X0_A_Only]
+all[, X0_A_Only_SDY := sd(y, na.rm = T), by = X0_A_Only]
+final.feature = c(final.feature, 'X0_A_Only', 'X0_A_Only_MeanY', 'X0_A_Only_SDY')
+
+# Dup ID 
+dupID = colnames(all)[3:366]
+all[, dupCnt := .N, by = dupID]
+final.feature = c(final.feature, 'X0_A_Only', 'X0_A_Only_MeanY', 'X0_A_Only_SDY', 'dupCnt')
+
+# Remove Dup
+# all_2 = copy(all)
+# all_2[, y := ifelse(is.na(y), NA, mean(y)), by = dupID]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+setDF(all)
+test.raw = all[is.na(all$y), ]
 LBScore = fread("./data/LBScore.csv", data.table = F)
 for(id in LBScore$ID){
     print(id)
     print(paste0(all[all$ID == id, 'y'], " to ", LBScore[LBScore$ID == id, 'y']))
     all[all$ID == id, 'y'] = LBScore[LBScore$ID == id, 'y']
 }
-
-
-
 
 # Modeling ----------------------------------------------------------------
 test.full = all[is.na(all$y), ]
@@ -53,4 +90,10 @@ var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
 
 
 
-dtest <- xgb.DMatrix(data.matrix(test.full[, predictors]), label = train.full[, response])
+dtest <- xgb.DMatrix(data.matrix(test.raw[, predictors]), label = test.raw[, response])
+pred = predict(xgbFit, dtest, xgbFit$bestInd)
+submit = data.frame(ID = test.raw$ID, y = pred)
+write.csv(submit, file = paste0("./prediction/challenger/xgb_single_feat_select_dup.csv"), row.names = F)
+
+
+compare = merge(submit, compare, by = 'ID')

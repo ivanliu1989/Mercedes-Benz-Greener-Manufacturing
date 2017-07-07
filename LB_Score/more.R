@@ -39,12 +39,6 @@ setorder(LBScore, ID)
 LBScore
 write.csv(unique(LBScore), file = "./data/LBScore.csv", row.names = F)
 
-# X0 Distribution (e.g. weights)
-# Duplicates
-# Add training obs
-# Stacking
-
 
 # mean when there was a duplicate, it helped really, really a lot!
-
 # I have introduced a variable counting the repetitions: for each row, I include (as a new column) a variable indicating how many 'clones' does this row have.

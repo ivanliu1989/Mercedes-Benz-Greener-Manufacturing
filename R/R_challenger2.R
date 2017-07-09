@@ -73,3 +73,8 @@ for(i in 3:ncol(all)){
 test.ID = data.frame(ID = test.ID)
 write.csv(all, file = "./data/cleanData.csv", row.names = F)
 write.csv(test.ID, file = "./data/testID.csv", row.names = F)
+
+
+
+setDT(all)
+all[ID %in% test.ID]

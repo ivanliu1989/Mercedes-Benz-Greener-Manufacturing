@@ -2,7 +2,7 @@ rm(list = ls()); gc()
 library(caret)
 library(data.table)
 load(file = './data/featureSelection_20170706.RData')
-load(file = "../data20170706.RData")
+load(file = "../Common Data/data20170706.RData")
 setDT(all)
 
 # X0 A
@@ -85,6 +85,21 @@ dtrain <- xgb.DMatrix(data.matrix(train.full[, predictors]), label = train.full[
 xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T, prediction = T)
 r2 = 1 - (sum((train.full[, response]-xgbFit$pred)^2) / sum((train.full[, response]-mean(train.full[, response]))^2))
 print(r2)
+
+
+
+# Stacking ----------------------------------------------------------------
+xgbStacking = xgbFit$pred
+xgbStacking = c(xgbStacking, pred)
+xgbStacking = data.frame(ID = c(train.full$ID, test.raw$ID), xgbStack = xgbStacking)
+setDT(xgbStacking)
+xgbStacking = xgbStacking[!duplicated(xgbStacking$ID), ]
+
+dim(all)
+setDT(all)
+all = merge(all, xgbStacking, by = 'ID', all.x = T)
+
+# Submit ------------------------------------------------------------------
 xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration, print_every_n = 100, verbose = 1, maximize =T)
 var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
 
@@ -97,3 +112,7 @@ write.csv(submit, file = paste0("./prediction/challenger/xgb_single_feat_select_
 
 
 compare = merge(submit, compare, by = 'ID')
+
+final.feature = c(final.feature, 'xgbStack')
+save(final.feature, file = "./data/featureSelection_20170709.RData")
+save(all, file = "../Common Data/data20170709.RData")

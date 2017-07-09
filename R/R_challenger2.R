@@ -1,0 +1,6 @@
+rm(list = ls()); gc()
+library(caret)
+library(data.table)
+load(file = './data/featureSelection_20170709.RData')
+load(file = "../Common Data/data20170709.RData")
+setDT(all)

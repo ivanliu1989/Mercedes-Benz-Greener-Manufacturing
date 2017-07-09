@@ -53,7 +53,7 @@ setDT(all)
 
 
 # Modeling ----------------------------------------------------------------
-all$y = log(all$y)
+# all$y = log(all$y)
 test.raw = all[ID %in% test.ID, ]
 setDF(all)
 test.full = all[is.na(all$y), ]
@@ -87,7 +87,7 @@ param <- list(
 )
 
 dtrain <- xgb.DMatrix(data.matrix(train.full[, predictors]), label = train.full[, response])
-xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T, prediction = T)
+xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 5, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T, prediction = T)
 r2 = 1 - (sum((train.full[, response]-xgbFit$pred)^2) / sum((train.full[, response]-mean(train.full[, response]))^2))
 print(r2)
 
@@ -108,9 +108,7 @@ all = merge(all, xgbStacking, by = 'ID', all.x = T)
 xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration, print_every_n = 100, verbose = 1, maximize =T)
 var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
 
-1 - (sum((10^train.full[, response]-10^xgbFit$pred)^2) / sum((10^train.full[, response]-mean(10^train.full[, response]))^2))
-
-
+setDF(test.raw)
 dtest <- xgb.DMatrix(data.matrix(test.raw[, predictors]), label = test.raw[, response])
 pred = predict(xgbFit, dtest, xgbFit$bestInd)
 submit = data.frame(ID = test.raw$ID, y = pred)
@@ -122,3 +120,4 @@ compare = merge(submit, compare, by = 'ID')
 final.feature = c(final.feature, 'xgbStack')
 save(final.feature, file = "./data/featureSelection_20170709.RData")
 save(all, file = "../Common Data/data20170709.RData")
+save(test.ID, file = "./data/testIDs.RData")

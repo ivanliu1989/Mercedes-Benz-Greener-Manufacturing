@@ -4,6 +4,7 @@ library(data.table)
 load(file = './data/featureSelection_20170706.RData')
 load(file = "../Common Data/data20170706.RData")
 setDT(all)
+test.ID = all[is.na(all$y), ID]
 
 # X0 A
 colnames(all)[grepl('X0a', colnames(all))]
@@ -17,40 +18,44 @@ dupID = colnames(all)[3:366]
 all[, dupCnt := .N, by = dupID]
 final.feature = c(final.feature, 'X0_A_Only', 'X0_A_Only_MeanY', 'X0_A_Only_SDY', 'dupCnt')
 
-# Remove Dup
-# all_2 = copy(all)
-# all_2[, y := ifelse(is.na(y), NA, mean(y)), by = dupID]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Probing
 setDF(all)
-test.raw = all[is.na(all$y), ]
 LBScore = fread("./data/LBScore.csv", data.table = F)
 for(id in LBScore$ID){
     print(id)
     print(paste0(all[all$ID == id, 'y'], " to ", LBScore[LBScore$ID == id, 'y']))
     all[all$ID == id, 'y'] = LBScore[LBScore$ID == id, 'y']
 }
+setDT(all)
+
+# Remove Dup
+# all_2 = copy(all)
+# all_2[, y := mean(y, na.rm = TRUE), by = dupID]
+# all_2 = all_2[!ID %in% test.ID]
+# all = unique(rbind(all, all_2))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Modeling ----------------------------------------------------------------
+all$y = log(all$y)
+test.raw = all[ID %in% test.ID, ]
+setDF(all)
 test.full = all[is.na(all$y), ]
 train.full = all[!is.na(all$y), ] #  & all$y < 200
 predictors = final.feature
@@ -103,12 +108,13 @@ all = merge(all, xgbStacking, by = 'ID', all.x = T)
 xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration, print_every_n = 100, verbose = 1, maximize =T)
 var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
 
+1 - (sum((10^train.full[, response]-10^xgbFit$pred)^2) / sum((10^train.full[, response]-mean(10^train.full[, response]))^2))
 
 
 dtest <- xgb.DMatrix(data.matrix(test.raw[, predictors]), label = test.raw[, response])
 pred = predict(xgbFit, dtest, xgbFit$bestInd)
 submit = data.frame(ID = test.raw$ID, y = pred)
-write.csv(submit, file = paste0("./prediction/challenger/xgb_single_feat_select_dup.csv"), row.names = F)
+write.csv(submit, file = paste0("./prediction/xgb_single_feat_select_dup_mean.csv"), row.names = F)
 
 
 compare = merge(submit, compare, by = 'ID')

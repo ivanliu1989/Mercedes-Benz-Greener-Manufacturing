@@ -6,6 +6,7 @@ load(file = "../Common Data/data20170709.RData")
 load(file = "./data/testIDs.RData")
 setDT(all)
 final.feature = final.feature[-486]
+final.feature = colnames(all)[!colnames(all) %in% c('xgbStack', 'y')]
 
 # Data scale --------------------------------------------------------------
 all[,xgbStack := NULL]
@@ -48,19 +49,20 @@ param <- list(
     booster = "gbtree",
     gamma = 0.01,
     min_child_weight = 0,
-    subsample = 0.85,
-    colsample_bytree = 0.85,
+    subsample = 0.9,
+    colsample_bytree = 0.7,
     lambda = 0.0001,
     base_score = mean(train.full$y),
     alpha = 10
 )
 
-submit = data.frame(ID = test.raw$ID, y = pred)
+submit = data.frame(ID = test.raw$ID, y = NA)
+submit_train = data.frame(ID = train.full$ID, y = NA)
 scores = c()
  
 for(i in 1:10){
-    set.seed(1989*i)
-    
+    set.seed(9*i)
+    print(i)
     dtrain <- xgb.DMatrix(data.matrix(train.full[, predictors]), label = train.full[, response])
     xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T, prediction = T)
     r2 = 1 - (sum((train.full[, response]-xgbFit$pred)^2) / sum((train.full[, response]-mean(train.full[, response]))^2))
@@ -77,10 +79,10 @@ for(i in 1:10){
     xgbFit = xgb.cv(data = dtrain, nrounds = 15000, nfold = 10, param, print_every_n = 100, early_stopping_rounds = 100, verbose = 1, maximize =T, prediction = T)
     r2 = 1 - (sum((train.full[, response]-xgbFit$pred)^2) / sum((train.full[, response]-mean(train.full[, response]))^2))
     print(r2)
+    submit_train[, i] = xgbFit$pred
     
     xgbFit <- xgb.train(param,dtrain,nrounds = xgbFit$best_iteration, print_every_n = 100, verbose = 1, maximize =T)
     var.imp = xgb.importance(colnames(dtrain), model = xgbFit)
-    
     
     setDF(test.raw)
     dtest <- xgb.DMatrix(data.matrix(test.raw[, predictors2]), label = test.raw[, response])
@@ -93,14 +95,18 @@ for(i in 1:10){
 
 
 submit2 = submit
+submit2_train = submit_train
 
 scores2 = (scores - min(scores))/(max(scores) - min(scores))
 scores2 = scores2/sum(scores2)
 
 for(i in 1:length(scores2)){
     submit2[, i] = submit[, i] * scores2[i]    
+    submit2_train[, i] = submit_train[, i] * scores2[i]    
 }
 
 submit = data.frame(ID = test.raw$ID, y = rowSums(submit2))
+submit_train = data.frame(ID = train.full$ID, y = rowSums(submit2_train))
 
-write.csv(submit, file = paste0("./fnl_submit/xgb_0574.csv"), row.names = F)
+write.csv(submit, file = paste0("./fnl_submit/ivan_xgb_05731_test.csv"), row.names = F)
+write.csv(submit_train, file = paste0("./fnl_submit/ivan_xgb_05731_train.csv"), row.names = F)

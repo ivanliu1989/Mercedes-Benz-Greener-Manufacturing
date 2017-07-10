@@ -78,3 +78,8 @@ write.csv(test.ID, file = "./data/testID.csv", row.names = F)
 
 setDT(all)
 all[ID %in% test.ID]
+
+
+
+library(elasticnet)
+cv.enet()
